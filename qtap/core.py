@@ -6,10 +6,12 @@
 GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
 """
 
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 from inspect import signature, Parameter
 from builtins import int, float, str, bool
 from typing import *
+from collections import namedtuple
+
 
 widget_mapping = \
     {
@@ -28,29 +30,56 @@ val_setters = \
     }
 
 
-class BaseArg:
+class Arg:
     acceptable_types = (int, float, str, bool)
+    sig_changed = QtCore.pyqtSignal(object)
 
     def __init__(
             self,
             name: str,
-            annot: type,
+            typ: type,
             val: Union[int, float, str, bool],
-            parent: QtWidgets.QWidget
+            parent: QtWidgets.QWidget,
+            vlayout: QtWidgets.QVBoxLayout
     ):
-        self.hlayout = QtWidgets.QHBoxLayout()
+        """
+        Creates the appropriate QWidget interface.
+
+        Parameters
+        ----------
+        name : str
+            argument name
+
+        typ : type
+            function type, one of ``int``, ``float``, ``str`` or ``bool``.
+            Used for determining the correct QWidget to be used
+
+        val : Union[int, float, str, bool]
+            default value for the widget
+
+        parent : QtWidgets.QWidget
+            parent widget
+
+        vlayout : QtWidgets.QVBoxLayout
+            parent VBoxLayout
+        """
         self.parent = parent
+        self.vlayout = vlayout
+
+        self.hlayout = QtWidgets.QHBoxLayout()
 
         self._qlabel = QtWidgets.QLabel(self.parent)
         self.hlayout.addWidget(self._qlabel)
         self.name = name
 
-        self.annot = annot
+        self.typ = typ
 
-        self.widget = widget_mapping[self.annot](self.parent)
+        self.widget = widget_mapping[self.typ](self.parent)
         self.hlayout.addWidget(self.widget)
 
         self.val = val
+
+        self.vlayout.addLayout(self.hlayout)
 
     @property
     def name(self) -> str:
@@ -74,29 +103,66 @@ class BaseArg:
         # use the correct func to set the value based on type
         getattr(self.widget, val_setters[type(self.widget)])(self.val)
 
+    def __repr__(self):
+        return \
+            f'name:\t{self.name}\n' \
+            f'val:\t{self.val}\n' \
+            f'typ:\t{self.typ}'
 
-class ArgNumeric(BaseArg):
+class ArgNumeric(Arg):
     acceptable_types = (int, float)
 
-    def __init__(self, name: str, annot: type, val: Union[int, float, str, bool], parent: QtWidgets.QWidget,  minmax: tuple, step: Union[int, float], suffix: str = None):
-        super().__init__(name, annot, val, parent)
+    def __init__(self, name: str, typ: type, val: Union[int, float, str, bool], parent: QtWidgets.QWidget, vlayout: QtWidgets.QVBoxLayout, minmax: tuple, step: Union[int, float], use_slider: bool = False, suffix: str = None):
+        """
+        Creates numerical QWidget interface
+
+        Parameters
+        ----------
+        minmax : tuple
+            min & max values
+
+        step : Union[int, float]
+            step size for the spin box
+
+        use_slider : Optional[bool]
+            adds a slider below the spin box
+
+        suffix : Optional[str]
+            text suffix for the spin box, like data units
+        """
+        super().__init__(name, typ, val, parent, vlayout)
+
+        self.slider = None
 
         self.minmax = minmax
 
-        self.min = self.minmax[0]
-        self.max = self.minmax[1]
+        self.step = step
+
+        if use_slider:
+            self.slider = QtWidgets.QSlider(self.parent)
+            self.slider.setOrientation(QtCore.Qt.Horizontal)
+            self.slider.setMaximum(self.max)
+            self.slider.setMinimum(self.min)
+            self.widget.valueChanged.connect(self.slider.setValue)
+            self.slider.valueChanged.connect(self.widget.setValue)
+            self.vlayout.addWidget(self.slider)
 
         self.suffix = suffix
         if self.suffix is not None:
             self.widget.setSuffix(self.suffix)
 
+    def set_slider(self):
+        if self.slider is not None:
+            self.slider.setMaximum(self.max)
+            self.slider.setMinimum(self.min)
+
     @property
     def minmax(self) -> tuple:
-        return self._minmax
+        return tuple(self._minmax)
 
     @minmax.setter
     def minmax(self, minmax: tuple):
-        self._minmax = minmax
+        self._minmax = list(minmax)
         self.min = self.minmax[0]
         self.max = self.minmax[1]
 
@@ -108,7 +174,10 @@ class ArgNumeric(BaseArg):
     def min(self, v: Union[int, float]):
         assert isinstance(v, (int, float))
         self._min = v
+        self._minmax[0] = v
+
         self.widget.setMinimum(v)
+        self.set_slider()
 
     @property
     def max(self) -> Union[int, float]:
@@ -118,7 +187,10 @@ class ArgNumeric(BaseArg):
     def max(self, v: Union[int, float]):
         assert isinstance(v, (int, float))
         self._max = v
+        self._minmax[1] = v
+
         self.widget.setMaximum(v)
+        self.set_slider()
 
     @property
     def step(self) -> Union[int, float]:
@@ -130,25 +202,70 @@ class ArgNumeric(BaseArg):
         self._step = v
         self.widget.setSingleStep(v)
 
+    def __repr__(self):
+        return \
+            f"{super(ArgNumeric, self).__repr__()}\n" \
+            f"minmax:\t{self.minmax}\n" \
+            f"step:\t{self.step}\n" \
+            f"suffix:\t{self.suffix}"
 
-def get_argument(sig: Parameter, parent, minmax, step, suffix: Optional[str] = None):
+
+def _get_argument(sig: Parameter, parent, vlayout, **kwargs):
     if sig.annotation in [int, float]:
         return ArgNumeric(
             name=sig.name,
-            annot=sig.annotation,
+            typ=sig.annotation,
             val=sig.default,
             parent=parent,
-            minmax=minmax,
-            step=step,
-            suffix=suffix
-        )
-    else:
-        return BaseArg(
-            name=sig.name,
-            annot=sig.annotation,
-            val=sig.default,
-            parent=parent
+            vlayout=vlayout,
+            **kwargs
         )
 
+    else:
+        return Arg(
+            name=sig.name,
+            typ=sig.annotation,
+            val=sig.default,
+            parent=parent,
+            vlayout=vlayout
+        )
+
+
 class Function:
-    pass
+    def __init__(self, func: callable, overrides: dict = None, parent: QtWidgets.QWidget = None, kwarg_entry: bool = False):
+        self.widget = QtWidgets.QWidget(parent)
+
+        self.vlayout = QtWidgets.QVBoxLayout(self.widget)
+
+        self.overrides = overrides
+
+        self.name = func.__name__
+        self._qlabel = QtWidgets.QLabel(self.widget)
+        self._qlabel.setStyleSheet("font-weight: bold")
+        self.vlayout.addWidget(self._qlabel)
+
+        arg_names = signature(func).parameters.keys()
+        arg_sigs = signature(func).parameters.values()
+
+        Arguments = namedtuple('Arguments', arg_names)
+        self.arguments = Arguments(
+            *(
+                _get_argument(
+                    sig,
+                    parent=self.widget,
+                    vlayout=self.vlayout,
+                    minmax=(0, 999),
+                    step=1
+                ) for sig in arg_sigs
+            )
+        )
+
+    def add_arg(self):
+        pass
+
+    def get_data(self):
+        return {arg.name: arg.val for arg in self.arguments}
+
+    def set_data(self, d: dict):
+        for arg in d.keys():
+            getattr(self.arguments, arg).val = d[arg]
