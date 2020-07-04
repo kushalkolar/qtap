@@ -7,7 +7,7 @@ GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
 """
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from inspect import signature, Parameter
+import inspect
 from builtins import int, float, str, bool
 from typing import *
 from collections import namedtuple
@@ -96,6 +96,10 @@ class Arg:
 
     @val.setter
     def val(self, v: Union[int, float, str, bool]):
+        if v is inspect._empty:
+            self._v = None
+            return
+
         assert isinstance(v, self.acceptable_types)
 
         self._val = v
@@ -210,7 +214,7 @@ class ArgNumeric(Arg):
             f"suffix:\t{self.suffix}"
 
 
-def _get_argument(sig: Parameter, parent, vlayout, **kwargs):
+def _get_argument(sig: inspect.Parameter, parent, vlayout, **kwargs):
     if sig.annotation in [int, float]:
         return ArgNumeric(
             name=sig.name,
@@ -232,7 +236,25 @@ def _get_argument(sig: Parameter, parent, vlayout, **kwargs):
 
 
 class Function:
-    def __init__(self, func: callable, overrides: dict = None, parent: QtWidgets.QWidget = None, kwarg_entry: bool = False):
+    def __init__(self, func: callable, overrides: dict = None, parent: Optional[QtWidgets.QWidget] = None, kwarg_entry: bool = False):
+        """
+        Creates a widget based on the function signature
+
+        Parameters
+        ----------
+        func : callable
+            A function with type annotations
+
+        overrides : dict
+            Not yet implemented, may not every implement.
+            Easier to just access the arguments to manually set custom things anyways
+
+        parent : Optional[QtWidgets.QWidget]
+            parent QWidget
+
+        kwarg_entry : bool
+            include a text box for kwargs entry
+        """
         self.widget = QtWidgets.QWidget(parent)
 
         self.vlayout = QtWidgets.QVBoxLayout(self.widget)
@@ -244,8 +266,8 @@ class Function:
         self._qlabel.setStyleSheet("font-weight: bold")
         self.vlayout.addWidget(self._qlabel)
 
-        arg_names = signature(func).parameters.keys()
-        arg_sigs = signature(func).parameters.values()
+        arg_names = inspect.signature(func).parameters.keys()
+        arg_sigs = inspect.signature(func).parameters.values()
 
         Arguments = namedtuple('Arguments', arg_names)
         self.arguments = Arguments(
