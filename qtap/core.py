@@ -13,21 +13,19 @@ from typing import *
 from collections import namedtuple
 
 
-widget_mapping = \
-    {
-        int:    QtWidgets.QSpinBox,
-        float:  QtWidgets.QDoubleSpinBox,
-        bool:   QtWidgets.QCheckBox,
-        str:    QtWidgets.QLineEdit
-    }
+widget_mapping = {
+    int: QtWidgets.QSpinBox,
+    float: QtWidgets.QDoubleSpinBox,
+    bool: QtWidgets.QCheckBox,
+    str: QtWidgets.QLineEdit,
+}
 
-val_setters = \
-    {
-        QtWidgets.QSpinBox:         'setValue',
-        QtWidgets.QDoubleSpinBox:   'setValue',
-        QtWidgets.QCheckBox:        'setChecked',
-        QtWidgets.QLineEdit:        'setText'
-    }
+val_setters = {
+    QtWidgets.QSpinBox: "setValue",
+    QtWidgets.QDoubleSpinBox: "setValue",
+    QtWidgets.QCheckBox: "setChecked",
+    QtWidgets.QLineEdit: "setText",
+}
 
 
 class Arg:
@@ -35,12 +33,12 @@ class Arg:
     sig_changed = QtCore.pyqtSignal(object)
 
     def __init__(
-            self,
-            name: str,
-            typ: type,
-            val: Union[int, float, str, bool],
-            parent: QtWidgets.QWidget,
-            vlayout: QtWidgets.QVBoxLayout
+        self,
+        name: str,
+        typ: type,
+        val: Union[int, float, str, bool],
+        parent: QtWidgets.QWidget,
+        vlayout: QtWidgets.QVBoxLayout,
     ):
         """
         Creates the appropriate QWidget interface.
@@ -108,15 +106,24 @@ class Arg:
         getattr(self.widget, val_setters[type(self.widget)])(self.val)
 
     def __repr__(self):
-        return \
-            f'name:\t{self.name}\n' \
-            f'val:\t{self.val}\n' \
-            f'typ:\t{self.typ}'
+        return f"name:\t{self.name}\n" f"val:\t{self.val}\n" f"typ:\t{self.typ}"
+
 
 class ArgNumeric(Arg):
     acceptable_types = (int, float)
 
-    def __init__(self, name: str, typ: type, val: Union[int, float, str, bool], parent: QtWidgets.QWidget, vlayout: QtWidgets.QVBoxLayout, minmax: tuple, step: Union[int, float], use_slider: bool = False, suffix: str = None):
+    def __init__(
+        self,
+        name: str,
+        typ: type,
+        val: Union[int, float, str, bool],
+        parent: QtWidgets.QWidget,
+        vlayout: QtWidgets.QVBoxLayout,
+        minmax: tuple,
+        step: Union[int, float],
+        use_slider: bool = False,
+        suffix: str = None,
+    ):
         """
         Creates numerical QWidget interface
 
@@ -207,11 +214,12 @@ class ArgNumeric(Arg):
         self.widget.setSingleStep(v)
 
     def __repr__(self):
-        return \
-            f"{super(ArgNumeric, self).__repr__()}\n" \
-            f"minmax:\t{self.minmax}\n" \
-            f"step:\t{self.step}\n" \
+        return (
+            f"{super(ArgNumeric, self).__repr__()}\n"
+            f"minmax:\t{self.minmax}\n"
+            f"step:\t{self.step}\n"
             f"suffix:\t{self.suffix}"
+        )
 
 
 def _get_argument(sig: inspect.Parameter, parent, vlayout, **kwargs):
@@ -222,7 +230,7 @@ def _get_argument(sig: inspect.Parameter, parent, vlayout, **kwargs):
             val=sig.default,
             parent=parent,
             vlayout=vlayout,
-            **kwargs
+            **kwargs,
         )
 
     else:
@@ -231,12 +239,18 @@ def _get_argument(sig: inspect.Parameter, parent, vlayout, **kwargs):
             typ=sig.annotation,
             val=sig.default,
             parent=parent,
-            vlayout=vlayout
+            vlayout=vlayout,
         )
 
 
 class Function:
-    def __init__(self, func: callable, overrides: dict = None, parent: Optional[QtWidgets.QWidget] = None, kwarg_entry: bool = False):
+    def __init__(
+        self,
+        func: callable,
+        overrides: dict = None,
+        parent: Optional[QtWidgets.QWidget] = None,
+        kwarg_entry: bool = False,
+    ):
         """
         Creates a widget based on the function signature
 
@@ -269,7 +283,7 @@ class Function:
         arg_names = inspect.signature(func).parameters.keys()
         arg_sigs = inspect.signature(func).parameters.values()
 
-        Arguments = namedtuple('Arguments', arg_names)
+        Arguments = namedtuple("Arguments", arg_names)
         self.arguments = Arguments(
             *(
                 _get_argument(
@@ -277,8 +291,9 @@ class Function:
                     parent=self.widget,
                     vlayout=self.vlayout,
                     minmax=(0, 999),
-                    step=1
-                ) for sig in arg_sigs
+                    step=1,
+                )
+                for sig in arg_sigs
             )
         )
 
