@@ -7,7 +7,7 @@ GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
 """
 
 from PyQt5 import QtWidgets
-from inspect import signature
+from inspect import signature, Parameter
 from builtins import int, float, str, bool
 from typing import *
 
@@ -29,6 +29,8 @@ val_setters = \
 
 
 class BaseArg:
+    acceptable_types = (int, float, str, bool)
+
     def __init__(
             self,
             name: str,
@@ -36,16 +38,17 @@ class BaseArg:
             val: Union[int, float, str, bool],
             parent: QtWidgets.QWidget
     ):
-        self._hlayout = QtWidgets.QHBoxLayout()
+        self.hlayout = QtWidgets.QHBoxLayout()
         self.parent = parent
 
         self._qlabel = QtWidgets.QLabel(self.parent)
-        self._hlayout.addWidget(self._qlabel)
+        self.hlayout.addWidget(self._qlabel)
         self.name = name
 
         self.annot = annot
 
-        self.widget = widget_mapping[self.annot]
+        self.widget = widget_mapping[self.annot](self.parent)
+        self.hlayout.addWidget(self.widget)
 
         self.val = val
 
@@ -60,19 +63,21 @@ class BaseArg:
 
     @property
     def val(self) -> Union[int, float, str, bool]:
-        return self.val
+        return self._val
 
     @val.setter
     def val(self, v: Union[int, float, str, bool]):
-        assert isinstance(v, self.annot)
+        assert isinstance(v, self.acceptable_types)
 
-        self.val = v
+        self._val = v
 
         # use the correct func to set the value based on type
         getattr(self.widget, val_setters[type(self.widget)])(self.val)
 
 
 class ArgNumeric(BaseArg):
+    acceptable_types = (int, float)
+
     def __init__(self, name: str, annot: type, val: Union[int, float, str, bool], parent: QtWidgets.QWidget,  minmax: tuple, step: Union[int, float], suffix: str = None):
         super().__init__(name, annot, val, parent)
 
@@ -82,7 +87,8 @@ class ArgNumeric(BaseArg):
         self.max = self.minmax[1]
 
         self.suffix = suffix
-        self.widget.setSuffix(self.suffix)
+        if self.suffix is not None:
+            self.widget.setSuffix(self.suffix)
 
     @property
     def minmax(self) -> tuple:
@@ -100,7 +106,7 @@ class ArgNumeric(BaseArg):
 
     @min.setter
     def min(self, v: Union[int, float]):
-        assert isinstance(v, self.annot)
+        assert isinstance(v, (int, float))
         self._min = v
         self.widget.setMinimum(v)
 
@@ -110,7 +116,7 @@ class ArgNumeric(BaseArg):
 
     @max.setter
     def max(self, v: Union[int, float]):
-        assert isinstance(v, self.annot)
+        assert isinstance(v, (int, float))
         self._max = v
         self.widget.setMaximum(v)
 
@@ -120,9 +126,29 @@ class ArgNumeric(BaseArg):
 
     @step.setter
     def step(self, v: Union[int, float]):
-        assert isinstance(v, self.annot)
+        assert isinstance(v, (int, float))
         self._step = v
         self.widget.setSingleStep(v)
+
+
+def get_argument(sig: Parameter, parent, minmax, step, suffix: Optional[str] = None):
+    if sig.annotation in [int, float]:
+        return ArgNumeric(
+            name=sig.name,
+            annot=sig.annotation,
+            val=sig.default,
+            parent=parent,
+            minmax=minmax,
+            step=step,
+            suffix=suffix
+        )
+    else:
+        return BaseArg(
+            name=sig.name,
+            annot=sig.annotation,
+            val=sig.default,
+            parent=parent
+        )
 
 class Function:
     pass
