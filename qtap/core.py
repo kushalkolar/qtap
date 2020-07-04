@@ -79,6 +79,11 @@ class Arg:
 
         self.vlayout.addLayout(self.hlayout)
 
+        if self.typ is str:
+            self.widget.textEdited.connect(lambda v: setattr(self, '_val', v))
+        elif self.typ is bool:
+            self.widget.toggled.connect(lambda v: setattr(self, '_val', v))
+
     @property
     def name(self) -> str:
         return self._name
@@ -94,8 +99,8 @@ class Arg:
 
     @val.setter
     def val(self, v: Union[int, float, str, bool]):
-        if v is inspect._empty:
-            self._v = None
+        if v is None:
+            self._val = v
             return
 
         assert isinstance(v, self.acceptable_types)
@@ -116,7 +121,7 @@ class ArgNumeric(Arg):
         self,
         name: str,
         typ: type,
-        val: Union[int, float, str, bool],
+        val: Union[int, float],
         parent: QtWidgets.QWidget,
         vlayout: QtWidgets.QVBoxLayout,
         minmax: tuple,
@@ -161,6 +166,9 @@ class ArgNumeric(Arg):
         self.suffix = suffix
         if self.suffix is not None:
             self.widget.setSuffix(self.suffix)
+
+        self.widget.valueChanged.connect(lambda v: setattr(self, '_val', v))
+        self.val = val
 
     def set_slider(self):
         if self.slider is not None:
@@ -223,11 +231,16 @@ class ArgNumeric(Arg):
 
 
 def _get_argument(sig: inspect.Parameter, parent, vlayout, **kwargs):
+    if sig.default is inspect._empty:
+        default = None
+    else:
+        default = sig.default
+
     if sig.annotation in [int, float]:
         return ArgNumeric(
             name=sig.name,
             typ=sig.annotation,
-            val=sig.default,
+            val=default,
             parent=parent,
             vlayout=vlayout,
             **kwargs,
@@ -237,7 +250,7 @@ def _get_argument(sig: inspect.Parameter, parent, vlayout, **kwargs):
         return Arg(
             name=sig.name,
             typ=sig.annotation,
-            val=sig.default,
+            val=default,
             parent=parent,
             vlayout=vlayout,
         )

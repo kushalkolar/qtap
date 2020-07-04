@@ -4,11 +4,14 @@ from inspect import signature
 from pyqtgraph.console import ConsoleWidget
 
 
-def detrend_df_f(quantileMin: float = 8, frames_window: int = 500,
+def detrend_df_f(quantileMin: float,
+                 text: str,
+                 frames_window: int = 500,
                  flag_auto: bool = True,
                  use_fast: bool = False,
                  use_residuals: bool = True,
-                 detrend_only: bool = False):
+                 detrend_only: bool = False,
+                 string_test: str = 'bah'):
     pass
 
 
