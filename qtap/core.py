@@ -28,7 +28,7 @@ val_setters = {
 }
 
 
-class Arg:
+class Arg(QtCore.QObject):
     acceptable_types = (int, float, str, bool)
     sig_changed = QtCore.pyqtSignal(object)
 
@@ -67,6 +67,8 @@ class Arg:
         sig_changed : object
             emits ``self.val`` when GUI value is changed.
         """
+        super(Arg, self).__init__(parent)
+
         self.parent = parent
         self.vlayout = vlayout
 
@@ -81,16 +83,24 @@ class Arg:
         self.widget = widget_mapping[self.typ](self.parent)
         self.hlayout.addWidget(self.widget)
 
+        if typ is not str:
+            self.hlayout.addSpacerItem(
+                QtWidgets.QSpacerItem(
+                    40, 20, QtWidgets.QSizePolicy.Expanding,
+                    QtWidgets.QSizePolicy.Minimum
+                )
+            )
+
         self.val = val
 
         self.vlayout.addLayout(self.hlayout)
 
         if self.typ is str:
             self.widget.textEdited.connect(lambda v: setattr(self, '_val', v))
-            self.widget.textEdited.connect(self.sig_changed.emit(self.val))
+            self.widget.textEdited.connect(lambda: self.sig_changed.emit(self.val))
         elif self.typ is bool:
             self.widget.toggled.connect(lambda v: setattr(self, '_val', v))
-            self.widget.toggled.connect(self.sig_changed.emit(self.val))
+            self.widget.toggled.connect(lambda: self.sig_changed.emit(self.val))
 
     @property
     def name(self) -> str:
@@ -99,7 +109,7 @@ class Arg:
     @name.setter
     def name(self, n):
         self._name = n
-        self._qlabel.setText(self._name)
+        self._qlabel.setText(f'{self._name}: ')
 
     @property
     def val(self) -> Union[int, float, str, bool]:
@@ -132,8 +142,8 @@ class ArgNumeric(Arg):
         val: Union[int, float],
         parent: QtWidgets.QWidget,
         vlayout: QtWidgets.QVBoxLayout,
-        minmax: tuple,
-        step: Union[int, float],
+        minmax: tuple = (-1, 999),
+        step: Union[int, float] = 1,
         use_slider: bool = False,
         suffix: str = None,
     ):
@@ -176,7 +186,7 @@ class ArgNumeric(Arg):
             self.widget.setSuffix(self.suffix)
 
         self.widget.valueChanged.connect(lambda v: setattr(self, '_val', v))
-        self.widget.valueChanged.connect(self.sig_changed.emit(self.val))
+        self.widget.valueChanged.connect(lambda: self.sig_changed.emit(self.val))
         self.val = val
 
     def set_slider(self):
@@ -265,11 +275,11 @@ def _get_argument(sig: inspect.Parameter, parent, vlayout, **kwargs):
         )
 
 
-class Function:
+class Function(QtCore.QObject):
     def __init__(
         self,
         func: callable,
-        overrides: dict = None,
+        arg_opts: dict = None,
         parent: Optional[QtWidgets.QWidget] = None,
         kwarg_entry: bool = False,
     ):
@@ -281,9 +291,8 @@ class Function:
         func : callable
             A function with type annotations
 
-        overrides : dict
-            Not yet implemented, may not every implement.
-            Easier to just access the arguments to manually set custom things anyways
+        arg_opts : dict
+            manually set certain features of an Arg
 
         parent : Optional[QtWidgets.QWidget]
             parent QWidget
@@ -291,20 +300,57 @@ class Function:
         kwarg_entry : bool
             Not yet implemented.
             include a text box for kwargs entry
+
+        Examples
+        --------
+
+        .. code-block:: python
+            from PyQt5 import QtWidgets
+            from qtap import Function
+
+            # annotated function
+            def f(a: int = 1, b: float = 3.14, c: str = 'yay', d: bool = True):
+                pass
+
+            app = QtWidgets.QApplication([])
+
+            # basic
+            func = Function(f)
+            func.widget.show()
+
+            # some arg_opts
+            opts = \
+                {
+                    'b':
+                        {
+                            'use_slider': True,
+                            'minmax': (0, 100),
+                            'step': 0.5,
+                            'suffix': '%'
+                        }
+                }
+
+            app.exec()
+
         """
+        super(Function, self).__init__(parent)
+
         self.widget = QtWidgets.QWidget(parent)
 
         self.vlayout = QtWidgets.QVBoxLayout(self.widget)
 
-        self.overrides = overrides
-
         self.name = func.__name__
         self._qlabel = QtWidgets.QLabel(self.widget)
         self._qlabel.setStyleSheet("font-weight: bold")
+        self._qlabel.setText(self.name)
         self.vlayout.addWidget(self._qlabel)
 
         arg_names = inspect.signature(func).parameters.keys()
         arg_sigs = inspect.signature(func).parameters.values()
+
+        self.arg_opts = dict.fromkeys(arg_names)
+        self.arg_opts = {arg: {} for arg in arg_names}
+        self.arg_opts.update(arg_opts)
 
         # Add all the arguments as named tuples
         # so they're accessible like attributes
@@ -316,12 +362,16 @@ class Function:
                     sig,
                     parent=self.widget,
                     vlayout=self.vlayout,
-                    minmax=(0, 999),
-                    step=1,
+                    **self.arg_opts[sig.name]
                 )
                 for sig in arg_sigs
             )
         )
+
+        self.callbacks = []
+
+        for arg in self.arguments:
+            arg.sig_changed.connect(self.update_callbacks)
 
     def get_data(self):
         return {arg.name: arg.val for arg in self.arguments}
@@ -329,3 +379,12 @@ class Function:
     def set_data(self, d: dict):
         for arg in d.keys():
             getattr(self.arguments, arg).val = d[arg]
+
+    def add_callback(self, func: callable):
+        if not callable(func):
+            raise TypeError("`func` must be callabe")
+        self.callbacks.append(func)
+
+    def update_callbacks(self):
+        for func in self.callbacks:
+            func(self.get_data())

@@ -3,21 +3,25 @@ from qtap.core import Function
 from pyqtgraph.console import ConsoleWidget
 
 
-def detrend_df_f(quantileMin: float,
-                 text: str,
-                 frames_window: int = 500,
-                 flag_auto: bool = True,
-                 use_fast: bool = False,
-                 use_residuals: bool = True,
-                 detrend_only: bool = False,
-                 string_test: str = 'bah'):
+def f(a: int = 1, b: float = 3.14, c: str = 'yay', d: bool = True):
     pass
 
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])
 
-    func = Function(detrend_df_f)
+    opts = \
+        {
+            'b':
+                {
+                    'use_slider': True,
+                    'minmax': (0, 100),
+                    'step': 0.5,
+                    'suffix': '%'
+                }
+        }
+
+    func = Function(f, arg_opts=opts)
     func.widget.show()
 
     console = ConsoleWidget(parent=func.widget, namespace={'this': func})
