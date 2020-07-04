@@ -60,6 +60,12 @@ class Arg:
 
         vlayout : QtWidgets.QVBoxLayout
             parent VBoxLayout
+
+        Signals
+        -------
+
+        sig_changed : object
+            emits ``self.val`` when GUI value is changed.
         """
         self.parent = parent
         self.vlayout = vlayout
@@ -81,8 +87,10 @@ class Arg:
 
         if self.typ is str:
             self.widget.textEdited.connect(lambda v: setattr(self, '_val', v))
+            self.widget.textEdited.connect(self.sig_changed.emit(self.val))
         elif self.typ is bool:
             self.widget.toggled.connect(lambda v: setattr(self, '_val', v))
+            self.widget.toggled.connect(self.sig_changed.emit(self.val))
 
     @property
     def name(self) -> str:
@@ -168,6 +176,7 @@ class ArgNumeric(Arg):
             self.widget.setSuffix(self.suffix)
 
         self.widget.valueChanged.connect(lambda v: setattr(self, '_val', v))
+        self.widget.valueChanged.connect(self.sig_changed.emit(self.val))
         self.val = val
 
     def set_slider(self):
@@ -280,6 +289,7 @@ class Function:
             parent QWidget
 
         kwarg_entry : bool
+            Not yet implemented.
             include a text box for kwargs entry
         """
         self.widget = QtWidgets.QWidget(parent)
@@ -296,6 +306,9 @@ class Function:
         arg_names = inspect.signature(func).parameters.keys()
         arg_sigs = inspect.signature(func).parameters.values()
 
+        # Add all the arguments as named tuples
+        # so they're accessible like attributes
+        # dynamically named based on the args from the function!
         Arguments = namedtuple("Arguments", arg_names)
         self.arguments = Arguments(
             *(
@@ -309,9 +322,6 @@ class Function:
                 for sig in arg_sigs
             )
         )
-
-    def add_arg(self):
-        pass
 
     def get_data(self):
         return {arg.name: arg.val for arg in self.arguments}
