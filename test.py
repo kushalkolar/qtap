@@ -16,8 +16,10 @@ if __name__ == '__main__':
                 {
                     'use_slider': True,
                     'minmax': (0, 100),
-                    'step': 0.5,
-                    'suffix': '%'
+                    'step': 1,
+                    'suffix': '%',
+                    'typ': int,
+                    'name': 'overridden name'
                 }
         }
 

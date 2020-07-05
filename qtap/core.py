@@ -12,7 +12,6 @@ from builtins import int, float, str, bool
 from typing import *
 from collections import namedtuple
 
-
 widget_mapping = {
     int: QtWidgets.QSpinBox,
     float: QtWidgets.QDoubleSpinBox,
@@ -33,12 +32,12 @@ class Arg(QtCore.QObject):
     sig_changed = QtCore.pyqtSignal(object)
 
     def __init__(
-        self,
-        name: str,
-        typ: type,
-        val: Union[int, float, str, bool],
-        parent: QtWidgets.QWidget,
-        vlayout: QtWidgets.QVBoxLayout,
+            self,
+            name: str,
+            typ: type,
+            val: Union[int, float, str, bool],
+            parent: QtWidgets.QWidget,
+            vlayout: QtWidgets.QVBoxLayout,
     ):
         """
         Creates the appropriate QWidget interface.
@@ -136,16 +135,16 @@ class ArgNumeric(Arg):
     acceptable_types = (int, float)
 
     def __init__(
-        self,
-        name: str,
-        typ: type,
-        val: Union[int, float],
-        parent: QtWidgets.QWidget,
-        vlayout: QtWidgets.QVBoxLayout,
-        minmax: tuple = (-1, 999),
-        step: Union[int, float] = 1,
-        use_slider: bool = False,
-        suffix: str = None,
+            self,
+            name: str,
+            typ: type,
+            val: Union[int, float],
+            parent: QtWidgets.QWidget,
+            vlayout: QtWidgets.QVBoxLayout,
+            minmax: tuple = (-1, 999),
+            step: Union[int, float] = 1,
+            use_slider: bool = False,
+            suffix: str = None,
     ):
         """
         Creates numerical QWidget interface
@@ -249,39 +248,34 @@ class ArgNumeric(Arg):
         )
 
 
-def _get_argument(sig: inspect.Parameter, parent, vlayout, **kwargs):
+def _get_argument(sig: inspect.Parameter, parent, vlayout, **opts):
     if sig.default is inspect._empty:
         default = None
     else:
         default = sig.default
 
+    kwargs = dict(name=sig.name,
+                  typ=sig.annotation,
+                  val=default,
+                  parent=parent,
+                  vlayout=vlayout)
+
+    kwargs.update(opts)
+
     if sig.annotation in [int, float]:
-        return ArgNumeric(
-            name=sig.name,
-            typ=sig.annotation,
-            val=default,
-            parent=parent,
-            vlayout=vlayout,
-            **kwargs,
-        )
+        return ArgNumeric(**kwargs)
 
     else:
-        return Arg(
-            name=sig.name,
-            typ=sig.annotation,
-            val=default,
-            parent=parent,
-            vlayout=vlayout,
-        )
+        return Arg(**kwargs)
 
 
 class Function(QtCore.QObject):
     def __init__(
-        self,
-        func: callable,
-        arg_opts: dict = None,
-        parent: Optional[QtWidgets.QWidget] = None,
-        kwarg_entry: bool = False,
+            self,
+            func: callable,
+            arg_opts: dict = None,
+            parent: Optional[QtWidgets.QWidget] = None,
+            kwarg_entry: bool = False,
     ):
         """
         Creates a widget based on the function signature
