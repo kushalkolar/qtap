@@ -70,6 +70,24 @@ class Function(QtCore.QObject):
             Not yet implemented.
             include a text box for kwargs entry
 
+
+        Signals
+        -------
+        sig_changed : dict
+            Emitted when an argument value changes.
+            Emits dict for all function arguments.
+            See ``get_data()`` for details on the dict.
+
+        sig_set_clicked : dict
+            Emitted when the "Set" button is clicked.
+            Emits dict for all function arguments.
+            See ``get_data()`` for details on the dict.
+
+        sig_arg_changed : str, object
+            Emitted when specific argument value changes.
+            Emits argument name and argument value
+
+
         Examples
         --------
 
@@ -162,7 +180,16 @@ class Function(QtCore.QObject):
     def _emit_data(self, sig: QtCore.pyqtBoundSignal):
         sig.emit(self.get_data())
 
-    def get_data(self):
+    def get_data(self) -> Dict[str, object]:
+        """
+        Get the data from the function arguments
+
+        Returns
+        -------
+        dict. dict keys are the argument names, dict values are the argument vals
+
+        """
+
         return {arg.name: arg.val for arg in self.arguments}
 
     def set_data(self, d: dict):
@@ -183,7 +210,7 @@ class Function(QtCore.QObject):
 
 
 class Functions(QtWidgets.QWidget):
-    sig_changed = QtCore.pyqtSignal(dict)
+    sig_changed = QtCore.pyqtSignal(dict)  #:
 
     def __init__(
             self,
@@ -195,6 +222,89 @@ class Functions(QtWidgets.QWidget):
             columns: bool = False,
             **kwargs
     ):
+        """
+
+        Parameters
+        ----------
+        functions : List[callable]
+            list of functions
+
+        arg_opts : List[dict], optional
+            optional list of dicts to manually set features of an argument.
+            passed to ``Function``
+
+        parent : QtWidgets.QWidget, optional
+            parent widget
+
+        scroll : bool
+            Not yet implemented
+
+        orient : str
+            orientation of the individual functions. One of ``V`` or ``H``.
+            Default orientation is ``V`` (vertical)
+
+        columns : bool
+            Not yet implemented
+
+        **kwargs
+            passed to QtWidgets.QWidget.__init__()
+
+        Signals
+        -------
+
+        sig_changed : dict
+            Emitted when an underlying function emits sig_changed() or sig_set_clicked().
+            The emitted dict comes from ``get_data()``,
+            see the docstring for ``get_data()`` for details.
+
+        Examples
+        --------
+
+        .. code-block:: python
+            :linenos:
+
+            from PyQt5 import QtWidgets
+            from qtap import Functions
+            from pyqtgraph.console import ConsoleWidget
+
+
+            def func_A(a: int = 1, b: float = 3.14, c: str = 'yay', d: bool = True):
+                pass
+
+
+            def func_B(x: float = 50, y: int = 2.7, u: str = 'bah'):
+                pass
+
+
+            if __name__ == '__main__':
+                app = QtWidgets.QApplication([])
+
+                opts_A = \
+                    {
+                        'b':
+                            {
+                                'use_slider': True,
+                                'minmax': (0, 100),
+                                'step': 1,
+                                'suffix': '%',
+                                'typ': int,
+                                'tooltip': 'yay tooltips'
+                            }
+                    }
+
+                functions = Functions(
+                    functions=[func_A, func_B],
+                    arg_opts=[opts_A, None],
+                )
+
+                console = ConsoleWidget(parent=functions, namespace={'this': functions})
+                functions.main_layout.addWidget(console)
+
+                functions.show()
+
+                app.exec()
+
+        """
         super().__init__(parent, **kwargs)
 
         _functions = namedtuple(
