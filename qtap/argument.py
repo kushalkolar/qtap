@@ -256,24 +256,3 @@ class ArgNumeric(Arg):
             f"step:\t{self.step}\n"
             f"suffix:\t{self.suffix}"
         )
-
-
-def _get_argument(sig: inspect.Parameter, parent, vlayout, **opts):
-    if sig.default is inspect._empty:
-        default = None
-    else:
-        default = sig.default
-
-    kwargs = dict(name=sig.name,
-                  typ=sig.annotation,
-                  val=default,
-                  parent=parent,
-                  vlayout=vlayout)
-
-    kwargs.update(opts)
-
-    if sig.annotation in [int, float]:
-        return ArgNumeric(**kwargs)
-
-    else:
-        return Arg(**kwargs)
