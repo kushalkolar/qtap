@@ -71,7 +71,7 @@ class Function(QtCore.QObject):
             include a text box for kwargs entry
 
 
-        Signals
+        Attributes
         -------
         sig_changed : dict
             Emitted when an argument value changes.
@@ -91,7 +91,11 @@ class Function(QtCore.QObject):
         Examples
         --------
 
+        **Basic**
+
         .. code-block:: python
+            :linenos:
+
             from PyQt5 import QtWidgets
             from qtap import Function
 
@@ -105,19 +109,47 @@ class Function(QtCore.QObject):
             func = Function(f)
             func.widget.show()
 
-            # some arg_opts
-            opts = \
-                {
-                    'b':
-                        {
-                            'use_slider': True,
-                            'minmax': (0, 100),
-                            'step': 0.5,
-                            'suffix': '%'
-                        }
-                }
-
             app.exec()
+
+        **Opt Args**
+
+        .. code-block:: python
+            :linenos:
+
+            from PyQt5 import QtWidgets
+            from qtap import Function
+            from pyqtgraph.console import ConsoleWidget
+
+
+            def f(a: int = 1, b: float = 3.14, c: str = 'yay', d: bool = True):
+                pass
+
+
+            if __name__ == '__main__':
+                app = QtWidgets.QApplication([])
+
+                # opt args dict
+                opts = \
+                    {
+                        'b':
+                            {
+                                'use_slider': True,
+                                'minmax': (0, 100),
+                                'step': 1,
+                                'suffix': '%',
+                                'typ': int,
+                                'tooltip': 'yay tooltips'
+                            }
+                    }
+
+                func = Function(f, arg_opts=opts)
+                func.widget.show()
+
+                console = ConsoleWidget(parent=func.widget, namespace={'this': func})
+                func.vlayout.addWidget(console)
+
+                app.exec()
+
 
         """
         super(Function, self).__init__(parent)
@@ -186,7 +218,8 @@ class Function(QtCore.QObject):
 
         Returns
         -------
-        dict. dict keys are the argument names, dict values are the argument vals
+        dict
+            dict keys are the argument names, dict values are the argument vals
 
         """
 
@@ -210,7 +243,8 @@ class Function(QtCore.QObject):
 
 
 class Functions(QtWidgets.QWidget):
-    sig_changed = QtCore.pyqtSignal(dict)  #:
+    sig_changed = QtCore.pyqtSignal(dict)
+    sig_set_clicked = QtCore.pyqtSignal(dict)
 
     def __init__(
             self,
@@ -249,16 +283,22 @@ class Functions(QtWidgets.QWidget):
         **kwargs
             passed to QtWidgets.QWidget.__init__()
 
-        Signals
+        Attributes
         -------
-
         sig_changed : dict
-            Emitted when an underlying function emits sig_changed() or sig_set_clicked().
+            Emitted when an underlying function emits sig_changed().
+            The emitted dict comes from ``get_data()``,
+            see the docstring for ``get_data()`` for details.
+
+        sig_set_clicked : dict
+            Emitted when an underlying function emits sig_set_clicked().
             The emitted dict comes from ``get_data()``,
             see the docstring for ``get_data()`` for details.
 
         Examples
         --------
+
+        **Basic**
 
         .. code-block:: python
             :linenos:
@@ -279,6 +319,37 @@ class Functions(QtWidgets.QWidget):
             if __name__ == '__main__':
                 app = QtWidgets.QApplication([])
 
+                functions = Functions([func_A, func_B])
+
+                console = ConsoleWidget(parent=functions, namespace={'this': functions})
+                functions.main_layout.addWidget(console)
+
+                functions.show()
+
+                app.exec()
+
+        **Opt Args**
+
+        .. code-block:: python
+            :linenos:
+
+            from PyQt5 import QtWidgets
+            from qtap import Functions
+            from pyqtgraph.console import ConsoleWidget
+
+
+            def func_A(a: int = 1, b: float = 3.14, c: str = 'yay', d: bool = True):
+                pass
+
+
+            def func_B(x: float = 50, y: int = 2.7, u: str = 'bah'):
+                pass
+
+
+            if __name__ == '__main__':
+                app = QtWidgets.QApplication([])
+
+                # opt args for ``func_A``
                 opts_A = \
                     {
                         'b':
@@ -292,9 +363,10 @@ class Functions(QtWidgets.QWidget):
                             }
                     }
 
+                # functions where one has ``opt_args``
                 functions = Functions(
                     functions=[func_A, func_B],
-                    arg_opts=[opts_A, None],
+                    arg_opts=[opts_A, None], # opt_args in same order as functions
                 )
 
                 console = ConsoleWidget(parent=functions, namespace={'this': functions})
@@ -311,6 +383,9 @@ class Functions(QtWidgets.QWidget):
             'Functions',
             [f.__name__ for f in functions]
         )
+
+        if arg_opts is None:
+            arg_opts = [None] * len(functions)
 
         self.functions = _functions(
             *(
@@ -352,7 +427,7 @@ class Functions(QtWidgets.QWidget):
 
             # emit dict when any function is set
             f.sig_set_clicked.connect(
-                partial(self._emit_data, self.sig_changed)
+                partial(self._emit_data, self.sig_set_clicked)
             )
 
     def _emit_data(self, sig):
@@ -363,8 +438,8 @@ class Functions(QtWidgets.QWidget):
 
         Returns
         -------
-            dict where the keys are the functions and values are a
-            dict of kwargs
+            dict
+                dict keys are the functions, each dict values is a kwargs dict
 
         """
         return {f.callable: f.get_data() for f in self.functions}

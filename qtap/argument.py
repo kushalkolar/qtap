@@ -61,9 +61,11 @@ class Arg(QtCore.QObject):
         vlayout : QtWidgets.QVBoxLayout
             parent VBoxLayout
 
-        Signals
-        -------
+        tooltip : str
+            toolTip
 
+        Attributes
+        ----------
         sig_changed : object
             emits ``self.val`` when GUI value is changed.
         """
@@ -80,6 +82,7 @@ class Arg(QtCore.QObject):
 
         self.typ = typ
 
+        self.widget: QtWidgets.QWidget  #: QWidget for the argument
         self.widget = widget_mapping[self.typ](self.parent)
         self.hlayout.addWidget(self.widget)
 
@@ -108,6 +111,7 @@ class Arg(QtCore.QObject):
 
     @property
     def name(self) -> str:
+        """argument name"""
         return self._name
 
     @name.setter
@@ -117,6 +121,7 @@ class Arg(QtCore.QObject):
 
     @property
     def val(self) -> Union[int, float, str, bool]:
+        """current argument value"""
         return self._val
 
     @val.setter
@@ -171,7 +176,6 @@ class ArgNumeric(Arg):
 
         **kwargs
             passed to Arg
-        ------
         """
         super().__init__(name, typ, val, parent, vlayout, **kwargs)
 
@@ -205,6 +209,7 @@ class ArgNumeric(Arg):
 
     @property
     def minmax(self) -> tuple:
+        """minmax limits for the widget"""
         return tuple(self._minmax)
 
     @minmax.setter
@@ -215,6 +220,7 @@ class ArgNumeric(Arg):
 
     @property
     def min(self) -> Union[int, float]:
+        """min value limit for the widget"""
         return self._min
 
     @min.setter
@@ -228,6 +234,7 @@ class ArgNumeric(Arg):
 
     @property
     def max(self) -> Union[int, float]:
+        """max value limit for the widget"""
         return self._max
 
     @max.setter
@@ -241,6 +248,7 @@ class ArgNumeric(Arg):
 
     @property
     def step(self) -> Union[int, float]:
+        """step size for the widget"""
         return self._step
 
     @step.setter
