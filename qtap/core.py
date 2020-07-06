@@ -391,7 +391,7 @@ class Function(QtCore.QObject):
         for arg in self.arguments:
             # emit entire dict when arg is changed
             arg.sig_changed.connect(
-                partial(self._emit_data, self.sig_set_clicked)
+                partial(self._emit_data, self.sig_changed)
             )
 
             # also emit just arg.name and arg.val when changed
