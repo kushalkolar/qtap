@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets
-from qtap.core import Function
+from qtap import Function
 from pyqtgraph.console import ConsoleWidget
 
 

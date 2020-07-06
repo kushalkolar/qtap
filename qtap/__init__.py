@@ -1,1 +1,1 @@
-from .core import Function
+from .function import *
