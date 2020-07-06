@@ -1,6 +1,6 @@
 Automatic Qt parameter entry widgets using function signatures 
 
-![gui_gif](./docs/img.gif)
+![gui_gif](./docs/source/img.gif)
 
 Basic usage:
 
