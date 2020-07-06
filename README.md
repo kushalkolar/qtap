@@ -1,8 +1,6 @@
 ## Automatic Qt parameter entry widgets using function signatures
 
-### Install using pip
-
-``pip install qtap``
+**Install using pip:** ``pip install qtap``
 
 ### Basic usage:
 
