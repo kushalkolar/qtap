@@ -20,6 +20,7 @@
 project = 'qtap'
 copyright = '2020, kushal kolar'
 author = 'kushal kolar'
+master_doc = 'index'
 
 # The full version, including alpha/beta/rc tags
 release = '0.1.0'
