@@ -19,7 +19,7 @@ if __name__ == '__main__':
                     'step': 1,
                     'suffix': '%',
                     'typ': int,
-                    'name': 'overridden name'
+                    'tooltip': 'yay tooltips'
                 }
         }
 

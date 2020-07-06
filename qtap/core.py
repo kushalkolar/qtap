@@ -11,6 +11,8 @@ import inspect
 from builtins import int, float, str, bool
 from typing import *
 from collections import namedtuple
+from functools import partial
+
 
 widget_mapping = {
     int: QtWidgets.QSpinBox,
@@ -38,6 +40,7 @@ class Arg(QtCore.QObject):
             val: Union[int, float, str, bool],
             parent: QtWidgets.QWidget,
             vlayout: QtWidgets.QVBoxLayout,
+            tooltip: Optional[str] = None
     ):
         """
         Creates the appropriate QWidget interface.
@@ -101,6 +104,10 @@ class Arg(QtCore.QObject):
             self.widget.toggled.connect(lambda v: setattr(self, '_val', v))
             self.widget.toggled.connect(lambda: self.sig_changed.emit(self.val))
 
+        if tooltip is not None:
+            self._qlabel.setToolTip(tooltip)
+            self.widget.setToolTip(tooltip)
+
     @property
     def name(self) -> str:
         return self._name
@@ -145,6 +152,7 @@ class ArgNumeric(Arg):
             step: Union[int, float] = 1,
             use_slider: bool = False,
             suffix: str = None,
+            **kwargs
     ):
         """
         Creates numerical QWidget interface
@@ -162,8 +170,12 @@ class ArgNumeric(Arg):
 
         suffix : Optional[str]
             text suffix for the spin box, like data units
+
+        **kwargs
+            passed to Arg
+        ------
         """
-        super().__init__(name, typ, val, parent, vlayout)
+        super().__init__(name, typ, val, parent, vlayout, **kwargs)
 
         self.slider = None
 
@@ -270,6 +282,13 @@ def _get_argument(sig: inspect.Parameter, parent, vlayout, **opts):
 
 
 class Function(QtCore.QObject):
+    # emit the entire dict
+    sig_changed = QtCore.pyqtSignal(dict)
+    sig_set_clicked = QtCore.pyqtSignal(dict)
+
+    # emits the name of the arg and its value
+    sig_arg_changed = QtCore.pyqtSignal(str, object)
+
     def __init__(
             self,
             func: callable,
@@ -362,10 +381,26 @@ class Function(QtCore.QObject):
             )
         )
 
-        self.callbacks = []
+        self.button_set = QtWidgets.QPushButton(self.widget)
+        self.button_set.setText('Set')
+        self.vlayout.addWidget(self.button_set)
+        self.button_set.clicked.connect(
+            partial(self._emit_data, self.sig_set_clicked)
+        )
 
         for arg in self.arguments:
-            arg.sig_changed.connect(self.update_callbacks)
+            # emit entire dict when arg is changed
+            arg.sig_changed.connect(
+                partial(self._emit_data, self.sig_set_clicked)
+            )
+
+            # also emit just arg.name and arg.val when changed
+            arg.sig_changed.connect(
+                partial(self.sig_arg_changed.emit, arg.name)
+            )
+
+    def _emit_data(self, sig: QtCore.pyqtBoundSignal):
+        sig.emit(self.get_data())
 
     def get_data(self):
         return {arg.name: arg.val for arg in self.arguments}
@@ -373,12 +408,3 @@ class Function(QtCore.QObject):
     def set_data(self, d: dict):
         for arg in d.keys():
             getattr(self.arguments, arg).val = d[arg]
-
-    def add_callback(self, func: callable):
-        if not callable(func):
-            raise TypeError("`func` must be callabe")
-        self.callbacks.append(func)
-
-    def update_callbacks(self):
-        for func in self.callbacks:
-            func(self.get_data())
