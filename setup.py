@@ -7,6 +7,6 @@ setup(
     url='https://github.com/kushalkolar/qtap',
     license='GPL v3.0',
     author='Kushal Kolar',
-    author_email='',
+    author_email='kushalkolar@alumni.ubc.ca',
     description='Automatic Qt parameter entry widgets using function signatures '
 )
