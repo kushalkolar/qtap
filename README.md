@@ -1,5 +1,5 @@
 ## Automatic Qt parameter entry widgets using function signatures
-[![PyPI version](https://badge.fury.io/py/qtap.svg)](https://badge.fury.io/py/qtap) [![Documentation Status](https://readthedocs.org/projects/qtap/badge/?version=latest)](https://qtap.readthedocs.io/en/latest/?badge=latest)
+[![PyPI version](https://badge.fury.io/py/qtap.svg)](https://badge.fury.io/py/qtap) [![Downloads](https://pepy.tech/badge/qtap)](https://pepy.tech/project/qtap) [![Documentation Status](https://readthedocs.org/projects/qtap/badge/?version=latest)](https://qtap.readthedocs.io/en/latest/?badge=latest)
 
 **Install using pip:** ``pip install qtap``
 
