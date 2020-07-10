@@ -1,6 +1,6 @@
 from setuptools import setup
 
-with open("README.md", 'r') as fh:
+with open("readme-pypi.md", 'r') as fh:
     long_description = fh.read()
 
 setup(
@@ -13,5 +13,6 @@ setup(
     author_email='kushalkolar@alumni.ubc.ca',
     description='Automatic Qt parameter entry widgets using function signatures ',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     python_requires='>=3.6',
 )
