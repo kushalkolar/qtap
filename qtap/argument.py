@@ -38,7 +38,8 @@ class Arg(QtCore.QObject):
             val: Union[int, float, str, bool],
             parent: QtWidgets.QWidget,
             vlayout: QtWidgets.QVBoxLayout,
-            tooltip: Optional[str] = None
+            tooltip: Optional[str] = None,
+            widget_override: QtWidgets.QWidget = None
     ):
         """
         Creates the appropriate QWidget interface.
@@ -98,12 +99,18 @@ class Arg(QtCore.QObject):
 
         self.vlayout.addLayout(self.hlayout)
 
-        if self.typ is str:
+        if isinstance(self.widget, QtWidgets.QLineEdit):
             self.widget.textEdited.connect(lambda v: setattr(self, '_val', v))
             self.widget.textEdited.connect(lambda: self.sig_changed.emit(self.val))
-        elif self.typ is bool:
+
+        elif isinstance(self.widget, QtWidgets.QCheckBox):
             self.widget.toggled.connect(lambda v: setattr(self, '_val', v))
             self.widget.toggled.connect(lambda: self.sig_changed.emit(self.val))
+
+        elif isinstance(self.widget, QtWidgets.QComboBox):
+            self.widget.currentTextChanged.connect(
+                lambda v: setattr(self, '_val', v)
+            )
 
         if tooltip is not None:
             self._qlabel.setToolTip(tooltip)
@@ -139,6 +146,20 @@ class Arg(QtCore.QObject):
 
     def __repr__(self):
         return f"name:\t{self.name}\n" f"val:\t{self.val}\n" f"typ:\t{self.typ}"
+
+
+class ArgComboBox(Arg):
+    acceptable_types = (int, float, str)
+
+    def __init__(self,
+                 name: str,
+                 typ: type,
+                 val: Union[int, float, str, bool],
+                 parent: QtWidgets.QWidget,
+                 vlayout: QtWidgets.QVBoxLayout,
+                 options: Iterable,
+                 **kwargs):
+        super().__init__(name, typ, val, parent, vlayout, **kwargs)
 
 
 class ArgNumeric(Arg):
