@@ -5,7 +5,7 @@ with open("readme-pypi.md", 'r') as fh:
 
 setup(
     name='qtap',
-    version='0.1.1',
+    version='0.1.2',
     packages=['qtap'],
     url='https://github.com/kushalkolar/qtap',
     license='GPL v3.0',
