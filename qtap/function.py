@@ -37,6 +37,10 @@ def _get_argument(sig: inspect.Parameter, parent, vlayout, **opts):
         return Arg(**kwargs)
 
 
+# this is a massive nested lambda, not sure if there's a more elegant way to do this without a nasty loop
+_ignore_arguments = lambda d: (lambda d: True if d['ignore'] else False)(d) if 'ignore' in d.keys() else False
+
+
 class Function(QtCore.QObject):
     # emit the entire dict
     sig_changed = QtCore.pyqtSignal(dict)
@@ -174,6 +178,12 @@ class Function(QtCore.QObject):
         if arg_opts is not None:
             self.arg_opts.update(arg_opts)
 
+        ignore = [
+            k for k in self.arg_opts.keys() if _ignore_arguments(self.arg_opts[k])
+        ]
+
+        arg_names = [n for n in arg_names if n not in ignore]
+
         # Add all the arguments as named tuples
         # so they're accessible like attributes
         # dynamically named based on the args from the function!
@@ -186,7 +196,7 @@ class Function(QtCore.QObject):
                     vlayout=self.vlayout,
                     **self.arg_opts[sig.name]
                 )
-                for sig in arg_sigs
+                for sig in arg_sigs if sig.name not in ignore
             )
         )
 

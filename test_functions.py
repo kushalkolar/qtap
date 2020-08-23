@@ -24,7 +24,9 @@ if __name__ == '__main__':
                     'suffix': '%',
                     'typ': int,
                     'tooltip': 'yay tooltips'
-                }
+                },
+
+            'c': {'ignore': True}
         }
 
     functions = Functions(
@@ -36,6 +38,7 @@ if __name__ == '__main__':
 
     console = ConsoleWidget(parent=functions, namespace={'this': functions})
     functions.main_layout.addWidget(console)
+    functions.sig_changed.connect(print)
 
     functions.show()
 

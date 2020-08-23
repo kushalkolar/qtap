@@ -38,7 +38,8 @@ class Arg(QtCore.QObject):
             val: Union[int, float, str, bool],
             parent: QtWidgets.QWidget,
             vlayout: QtWidgets.QVBoxLayout,
-            tooltip: Optional[str] = None
+            tooltip: Optional[str] = None,
+            **kwargs
     ):
         """
         Creates the appropriate QWidget interface.
