@@ -239,6 +239,22 @@ class Function(QtCore.QObject):
         for arg in d.keys():
             getattr(self.arguments, arg).val = d[arg]
 
+    def set_title(self, title: str):
+        """
+        Set the title text for the function. The default title is the function name.
+
+        Parameters
+        ----------
+        title : str
+            Title to display above the widgets for this function
+
+        Returns
+        -------
+        None
+
+        """
+        self._qlabel.setText(title)
+
     def __repr__(self):
         return f'{self.name}' \
                    f'\n' + \
